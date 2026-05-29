@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-05-12T14:58:55.908794+00:00",
+  "base_model_id": "microsoft/Phi-3.5-mini-instruct",
+  "test_set_size": 1000,
+  "intent_count": 27,
+  "approaches": {
+    "zero_shot": {
+      "accuracy": 0.697,
+      "macro_precision": 0.7466724079852382,
+      "weighted_precision": 0.7555225148567228,
+      "macro_recall": 0.7062092794887794,
+      "weighted_recall": 0.697,
+      "macro_f1": 0.6713087550059653,
+      "weighted_f1": 0.6682822629753109,
+      "mean_latency_ms": 2953.788977368502,
+      "p95_latency_ms": 3669.464835393592,
+      "token_cost_per_1k": 0.020260000000000004,
+      "correct_samples": 697,
+      "total_samples": 1000
+    },
+    "few_shot": {
+      "accuracy": 0.704,
+      "macro_precision": 0.7574212613291711,
+      "weighted_precision": 0.7726310642323638,
+      "macro_recall": 0.7130375277578389,
+      "weighted_recall": 0.704,
+      "macro_f1": 0.693492546415834,
+      "weighted_f1": 0.6967461004756521,
+      "mean_latency_ms": 3314.294946092821,
+      "p95_latency_ms": 3542.565044100047,
+      "token_cost_per_1k": 0.020260000000000004,
+      "correct_samples": 704,
+      "total_samples": 1000
+    },
+    "fine_tuned": {
+      "accuracy": 0.994,
+      "macro_precision": 0.99338732672066,
+      "weighted_precision": 0.9941428278928279,
+      "macro_recall": 0.993743435848699,
+      "weighted_recall": 0.994,
+      "macro_f1": 0.9934741722492497,
+      "weighted_f1": 0.9939875976683753,
+      "mean_latency_ms": 924.5082523015444,
+      "p95_latency_ms": 1231.3142122002296,
+      "token_cost_per_1k": 0.020260000000000004,
+      "correct_samples": 994,
+      "total_samples": 1000
+    }
+  }
+}

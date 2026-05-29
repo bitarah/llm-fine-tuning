@@ -1,0 +1,30 @@
+model:
+  base_model_id: "microsoft/Phi-3.5-mini-instruct"
+  adapter_path: "models/adapters/final"
+  trust_remote_code: true
+
+inference:
+  max_new_tokens: 20
+  temperature: 0.0
+  do_sample: false
+  batch_size: 8
+  seed: 42
+
+few_shot:
+  num_examples_per_intent: 5
+  example_selection: "random"
+
+evaluation:
+  test_data: "data/processed/test.jsonl"
+  results_dir: "experiments/results"
+  mlflow_tracking_uri: "experiments/mlflow"
+  experiment_name: "intent-classification-eval"
+  max_test_samples: 1000
+
+approaches:
+  - name: "zero_shot"
+    enabled: true
+  - name: "few_shot"
+    enabled: true
+  - name: "fine_tuned"
+    enabled: true

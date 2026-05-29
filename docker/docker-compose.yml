@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data:ro
+      - ../models:/app/models:ro
+      - ../experiments:/app/experiments:ro
+      - ../configs:/app/configs:ro
+    environment:
+      - LOG_LEVEL=info
+    command: uvicorn src.serving.app:app --host 0.0.0.0 --port 8000
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../data:/app/data:ro
+      - ../experiments:/app/experiments:ro
+    environment:
+      - API_BASE_URL=http://api:8000/api/v1
+    depends_on:
+      - api
+    command: streamlit run src/dashboard/app.py --server.port 8501 --server.address 0.0.0.0
