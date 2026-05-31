@@ -1,10 +1,55 @@
-# LLM Intent Classification — Portfolio Project
+# 🤖 LLM Intent Classification — Fine-Tuning Pipeline
 
-This project demonstrates a complete applied AI engineering workflow to fine-tune a small open-source LLM for e-commerce customer support intent classification. It compares three approaches — zero-shot prompting, few-shot prompting, and LoRA fine-tuning — and exposes results through a Streamlit evaluation dashboard backed by MLflow experiment tracking.
+> **End-to-end LLM fine-tuning on Apple Silicon for e-commerce customer support intent classification**
 
----
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)]() [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange)]() [![MLflow](https://img.shields.io/badge/tracking-MLflow-blue)]() [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Architecture Overview
+A full-stack ML engineering project that fine-tunes **Phi-3.5-mini-instruct** with LoRA/QLoRA on Apple Silicon, benchmarks it against zero-shot and few-shot baselines, and serves results through a FastAPI endpoint and Streamlit evaluation dashboard backed by MLflow experiment tracking.
+
+## 🎯 Project Overview
+
+This project demonstrates **end-to-end LLM engineering skills** for applied NLP:
+
+- **Real Dataset**: Bitext customer support dataset (~26k samples, 27 intent classes)
+- **3-Way Benchmark**: Zero-shot vs. few-shot vs. LoRA fine-tuned — same model, same test set
+- **Apple Silicon Native**: MLX-based training with MPS/PyTorch fallback
+- **Production Serving**: FastAPI REST API + Streamlit evaluation dashboard
+- **Full Experiment Tracking**: MLflow logs hyperparameters, loss curves, and adapter artifacts
+
+## 📊 Results
+
+| Approach | Accuracy | Macro F1 | Mean Latency |
+|---|---|---|---|
+| Zero-shot | 69.7% | 67.1% | 2,954 ms |
+| Few-shot | 70.4% | 69.3% | 3,314 ms |
+| **LoRA Fine-tuned** | **99.4%** | **99.3%** | **925 ms** |
+
+Fine-tuning with LoRA yields a **+29.7pp accuracy gain** over zero-shot while running **3.2× faster** at inference.
+
+## ✨ Key Features
+
+### 🗂️ Data Pipeline
+- **Bitext Dataset**: 26k e-commerce support utterances across 27 intent classes
+- **Stratified Splits**: 70/15/15 train/val/test with fixed seed (reproducible)
+- **3 Prompt Formats**: Separate formatters for zero-shot, few-shot, and fine-tune JSONL
+
+### 🏋️ Fine-Tuning (MLX / PyTorch)
+- **LoRA**: Rank-16 adapters on all attention + MLP projection layers
+- **4-bit Quantization**: QLoRA for reduced memory footprint on unified memory
+- **MLflow Tracking**: Loss curves, hyperparameters, and adapter artifacts per run
+- **Device-Aware**: MLX → MPS → CUDA → CPU priority chain
+
+### 📐 Evaluation
+- **3-Way Comparison**: Zero-shot, few-shot, and fine-tuned evaluated on identical 1,000-sample test set
+- **Metrics**: Accuracy, macro/weighted F1, P95 latency, per-1k token cost
+- **Confusion Matrices**: Per-approach, saved to `experiments/results/`
+
+### 🚀 Serving & Dashboard
+- **FastAPI**: `/classify`, `/health`, `/intents` endpoints
+- **Streamlit**: Benchmark table, confusion matrix viewer, live prediction panel
+- **Docker**: Multi-service compose for API + dashboard
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -37,194 +82,9 @@ This project demonstrates a complete applied AI engineering workflow to fine-tun
                         └──────────────────┘
 ```
 
----
-
-## Prerequisites
-
-- **macOS with Apple Silicon** (M1/M2/M3/M4) — primary target
-- **Python 3.11+** installed (via pyenv or Homebrew)
-- **Xcode Command Line Tools** installed (for MLX Metal compilation)
-- **16GB+ unified memory** recommended
-- **HuggingFace token** (for model downloads)
-
-To install Xcode tools:
-```bash
-xcode-select --install
-```
-
-To generate a HuggingFace token:
-1. Visit https://huggingface.co/settings/tokens
-2. Create a token with "read" access
-3. Copy the token and save it
-
----
-
-## Quick Start
-
-Clone the repository and run the setup:
-
-```bash
-git clone <repo-url>
-cd llm-fine-tuning
-
-# Install Python dependencies
-make install
-make install-mlx
-
-# Verify everything works
-make lint
-make test-phase1
-```
-
-All tests should pass. If any fail, check the Prerequisites section.
-
----
-
-## Phase-by-Phase Run Guide
-
-Run each phase in order. Each `make` command will execute one complete phase.
-
-### Phase 1: Project Setup ✓ (Complete)
-```bash
-make test-phase1    # Verify environment and configs
-```
-
-### Phase 2: Data Processing
-```bash
-make download-data  # Download Bitext dataset (~26k samples, 27 intents)
-make process-data   # Clean, split (70/15/15), format for all 3 approaches
-make test-phase2    # Verify data integrity
-```
-
-### Phase 3: Fine-Tuning
-```bash
-make finetune       # Train LoRA adapter on Apple Silicon (MLX)
-                    # Falls back to PyTorch MPS if MLX unavailable
-make test-phase3    # Verify trainer and adapter
-```
-
-### Phase 4: Evaluation
-```bash
-make evaluate       # Run zero-shot, few-shot, fine-tuned on test set
-                    # Compute accuracy, F1, latency, cost metrics
-make test-phase4    # Verify evaluation pipeline
-```
-
-### Phase 5: Dashboard & Serving
-```bash
-make serve          # Start FastAPI on port 8000
-make dashboard      # Start Streamlit on port 8501
-
-# In separate terminals:
-curl -X POST http://localhost:8000/classify -H "Content-Type: application/json" \
-  -d '{"text": "Where is my order?"}'
-
-open http://localhost:8501
-```
-
-All phases are deterministic — running the same `make` command twice produces identical results.
-
----
-
-## Configuration Guide
-
-### Training Configuration
-
-Edit `configs/training_config.yaml` to adjust:
-
-| Setting | Purpose | Default |
-|---------|---------|---------|
-| `model.base_model_id` | HuggingFace model to fine-tune | `microsoft/Phi-3.5-mini-instruct` |
-| `lora.rank` | LoRA rank (higher = more parameters) | `16` |
-| `training.num_epochs` | Training epochs | `3` |
-| `training.batch_size` | Batch size (reduce if OOM) | `4` |
-| `training.learning_rate` | Learning rate | `2.0e-4` |
-
-### Evaluation Configuration
-
-Edit `configs/eval_config.yaml` to adjust:
-
-| Setting | Purpose | Default |
-|---------|---------|---------|
-| `inference.max_new_tokens` | Max output tokens | `20` |
-| `few_shot.num_examples_per_intent` | Examples per intent class | `5` |
-| `approaches[*].enabled` | Which approaches to run | All enabled |
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-Required variables:
-- `HF_TOKEN` — Your HuggingFace API token
-
-Optional variables:
-- `MLFLOW_TRACKING_URI` — MLflow backend (default: `experiments/mlflow`)
-- `API_HOST` / `API_PORT` — FastAPI address (default: `0.0.0.0:8000`)
-- `STREAMLIT_PORT` — Streamlit port (default: `8501`)
-
----
-
-## MLflow Experiment Tracking
-
-After training, view metrics and artifacts:
-
-```bash
-mlflow ui --backend-store-uri experiments/mlflow
-```
-
-Then open http://localhost:5000 in your browser.
-
-You'll see:
-- Training loss curves (per epoch)
-- Hyperparameters (learning rate, LoRA rank, etc.)
-- LoRA adapter artifacts
-- Evaluation metrics (accuracy, F1, latency)
-
----
-
-## Docker Deployment
-
-Build and run both the API and dashboard in containers:
-
-```bash
-make docker-build    # Build images
-make docker-up       # Start services
-
-# Wait ~30s for services to start
-curl http://localhost:8000/health     # Verify API
-open http://localhost:8501             # View dashboard
-```
-
-Services:
-- **API**: http://localhost:8000 (FastAPI + Uvicorn)
-- **Dashboard**: http://localhost:8501 (Streamlit)
-
-To stop:
-```bash
-docker-compose -f docker/docker-compose.yml down
-```
-
----
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-project-root/
-├── data/
-│   ├── raw/                        # Downloaded dataset
-│   ├── processed/                  # Cleaned, split, formatted
-│   └── prompts/                    # Prompt templates
-├── models/
-│   ├── adapters/                   # LoRA adapter weights
-│   ├── exports/                    # Merged model exports
-│   └── training/                   # Adapter metadata
-├── experiments/
-│   ├── mlflow/                     # MLflow tracking store
-│   └── results/                    # Benchmark results & matrices
 ├── src/
 │   ├── data/
 │   │   ├── downloader.py           # HuggingFace dataset download
@@ -255,36 +115,175 @@ project-root/
 │           ├── confusion_matrix.py # Per-model matrices
 │           ├── latency_chart.py    # Scatter plot
 │           └── live_predict.py     # Input panel
-├── tests/
-│   ├── test_smoke.py               # Environment checks
-│   ├── test_data.py                # Data pipeline
-│   ├── test_training.py            # Training + MLflow
-│   ├── test_evaluation.py          # Metrics & inference
-│   └── test_serving.py             # API endpoints
+│
 ├── configs/
 │   ├── training_config.yaml        # Hyperparameters
 │   └── eval_config.yaml            # Evaluation settings
-├── notebooks/
-│   └── exploration.ipynb           # EDA & prototyping
-├── docker/
-│   ├── Dockerfile                  # Container image
-│   └── docker-compose.yml          # Multi-service orchestration
-├── requirements.txt                # Core ML dependencies
-├── requirements-mlx.txt            # Apple Silicon (MLX)
-├── pyproject.toml                  # Package config + ruff/mypy/pytest
+│
+├── data/
+│   ├── raw/                        # Downloaded dataset
+│   ├── processed/                  # Cleaned, split, formatted
+│   └── prompts/                    # Prompt templates
+│
+├── models/
+│   ├── adapters/                   # LoRA adapter weights
+│   └── training/                   # Adapter metadata
+│
+├── experiments/
+│   ├── mlflow/                     # MLflow tracking store
+│   └── results/                    # Benchmark results & matrices
+│
+├── tests/                          # pytest suite (mocked, no real data needed)
+├── docker/                         # Dockerfile + docker-compose
 ├── Makefile                        # Developer shortcuts
-├── README.md                       # This file
-└── .gitignore                      # Git exclusions
+└── requirements.txt / requirements-mlx.txt
 ```
 
+## 🚀 Quick Start
+
+### Prerequisites
+- **macOS with Apple Silicon** (M1/M2/M3/M4) — primary target
+- **Python 3.11+**
+- **Xcode Command Line Tools** (`xcode-select --install`)
+- **16GB+ unified memory** recommended
+- **HuggingFace token** with read access
+
+### Setup
+
+```bash
+git clone https://github.com/bitarah/llm-fine-tuning.git
+cd llm-fine-tuning
+
+# Copy and fill in your HuggingFace token
+cp .env.example .env
+
+# Install dependencies
+make install
+make install-mlx   # Apple Silicon only
+
+# Verify environment
+make lint
+make test-phase1
+```
+
+### Run All Phases
+
+```bash
+# Phase 2: Download and process data
+make download-data   # ~26k samples, 27 intents
+make process-data    # Clean → split → format
+
+# Phase 3: Fine-tune
+make finetune        # LoRA training on MLX (falls back to PyTorch MPS)
+
+# Phase 4: Evaluate all 3 approaches
+make evaluate
+
+# Phase 5: Serve results
+make serve           # FastAPI on :8000
+make dashboard       # Streamlit on :8501
+```
+
+### Docker (Easiest Setup)
+
+```bash
+make docker-build
+make docker-up
+
+# API:       http://localhost:8000
+# Dashboard: http://localhost:8501
+
+make docker-down
+```
+
+### Example API Call
+
+```bash
+curl -X POST http://localhost:8000/classify \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Where is my order?"}'
+```
+
+## 🔬 Machine Learning Details
+
+### Model
+- **Base**: `microsoft/Phi-3.5-mini-instruct` (3.8B parameters)
+- **Adapter**: LoRA rank-16, alpha-32, targeting all attention + MLP projections
+- **Quantization**: 4-bit QLoRA for memory efficiency
+
+### Training Configuration
+
+| Hyperparameter | Value |
+|---|---|
+| LoRA rank | 16 |
+| LoRA alpha | 32 |
+| Quantization | 4-bit |
+| Epochs | 3 |
+| Batch size | 4 |
+| Gradient accumulation | 4 steps |
+| Learning rate | 2e-4 |
+| LR scheduler | cosine |
+
+### Dataset
+
+- **Source**: [Bitext Customer Support](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset)
+- **Size**: ~26,000 utterances
+- **Classes**: 27 e-commerce intents (order status, returns, billing, shipping, etc.)
+- **Split**: 70% train / 15% val / 15% test (stratified, seed 42)
+
+## 📈 MLflow Experiment Tracking
+
+```bash
+mlflow ui --backend-store-uri experiments/mlflow
+# Open http://localhost:5000
+```
+
+Tracks per-run: training loss curves, hyperparameters, LoRA adapter artifacts, and evaluation metrics.
+
+## ⚙️ Configuration
+
+Edit `configs/training_config.yaml` to tune hyperparameters. Edit `configs/eval_config.yaml` to adjust inference settings (token limits, few-shot examples per intent, which approaches to run).
+
+Environment variables (`.env`):
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `HF_TOKEN` | HuggingFace API token | required |
+| `MLFLOW_TRACKING_URI` | MLflow backend | `experiments/mlflow` |
+| `API_HOST` / `API_PORT` | FastAPI address | `0.0.0.0:8000` |
+| `STREAMLIT_PORT` | Dashboard port | `8501` |
+
+## 🎓 Skills Demonstrated
+
+**For LLM / Applied ML Engineering Roles:**
+- ✅ LLM fine-tuning with LoRA/QLoRA (parameter-efficient training)
+- ✅ Apple Silicon-native ML (MLX framework)
+- ✅ Rigorous benchmarking (zero-shot vs. few-shot vs. fine-tuned)
+- ✅ Experiment tracking with MLflow
+- ✅ REST API serving with FastAPI
+- ✅ Interactive evaluation dashboard (Streamlit)
+- ✅ Containerized deployment (Docker Compose)
+- ✅ Clean ML project structure with full test coverage
+- ✅ Configuration-driven pipelines (no hardcoded values)
+
+## 📝 License
+
+MIT License — see [LICENSE](LICENSE) file for details.
+
+## 👤 Author
+
+**Bita Rahmat Zadeh**
+- Portfolio: [bitarah.github.io](https://bitarah.github.io/)
+- LinkedIn: [linkedin.com/in/bita-rahmat-zadeh-240a3b1b0](https://www.linkedin.com/in/bita-rahmat-zadeh-240a3b1b0/)
+- GitHub: [@bitarah](https://github.com/bitarah)
+
+## 🙏 Acknowledgments
+
+- [Bitext](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset) for the customer support dataset
+- [Microsoft](https://huggingface.co/microsoft/Phi-3.5-mini-instruct) for Phi-3.5-mini-instruct
+- [Apple MLX](https://github.com/ml-explore/mlx) for the Apple Silicon ML framework
+- [HuggingFace](https://huggingface.co/) for model hosting and the `transformers` / `peft` ecosystem
+
 ---
 
-## License
-
-MIT License — see LICENSE file for details.
-
----
-
-## Contact
-
-For questions or issues, open a GitHub issue in this repository.
+⭐ **Star this repo** if you find it useful for your LLM fine-tuning projects!
